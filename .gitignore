@@ -1,0 +1,31 @@
+# Python ortami ve onbellekler
+.venv/
+__pycache__/
+*.pyc
+
+# Sonar kayitlari (buyuk, konum bilgisi icerir)
+*.RSD
+*.rsd
+
+# Analiz ciktilari ve raporlar
+cozumleme/
+rapor/
+sonarlab/projeler/
+BAHR_SONARVIEW/BAHR SONARVIEW/Projeler/
+
+# Derleme ciktilari (program Release sayfasinda zip olarak dagitilir)
+BAHR_SONARVIEW/BAHR SONARVIEW/
+BAHR_SONARVIEW/_derleme/
+BAHR_SONARVIEW/_derleme_log.txt
+BAHR_SONARVIEW/*.lnk
+
+# Calisma zamani dosyalari
+.pencere/
+.port
+program_gunlugu.txt
+hata_gunlugu.txt
+analiz_gunlugu.txt
+
+# Yerel arac ayarlari
+.claude/
+graphify-out/

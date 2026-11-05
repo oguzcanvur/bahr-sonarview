@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+python-multipart
+pywebview
+pingverter
+numpy
+pandas
+matplotlib
+pillow
+pyproj
+pyinstaller

@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SonarLab</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230b1220' stroke='%2322d3ee' stroke-width='2'/%3E%3Cpath d='M16 16 L16 4 A12 12 0 0 1 27 12 Z' fill='%2322d3ee' opacity='.7'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/static/vendor/leaflet.css">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div id="uygulama">
+
+  <!-- ======================= SOL PANEL ======================= -->
+  <aside id="kenar">
+    <div class="marka">
+      <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><path class="tarama" d="M16 16 L16 2 A14 14 0 0 1 29 11 Z" fill="currentColor" opacity=".55"/></svg>
+      <div><b>SonarLab</b><span>Gölet & göl sonar analizi</span></div>
+    </div>
+
+    <label id="yukleKart" class="yukle-kart" tabindex="0">
+      <input type="file" id="dosyaSec" accept=".rsd,.RSD" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <div><b>Yeni kayıt yükle</b><span>Garmin .RSD dosyasını bırak ya da seç</span></div>
+    </label>
+    <div id="yuklemeDurum" class="yukleme-durum" hidden>
+      <div class="satir"><span id="yuklemeAd">dosya</span><span id="yuklemeYuzde">%0</span></div>
+      <div class="cubuk"><i id="yuklemeCubuk"></i></div>
+    </div>
+
+    <div class="baslik-kucuk">Projeler</div>
+    <nav id="projeListe" class="proje-liste"></nav>
+    <div class="kenar-alt">Yerel çalışır · veriler bu bilgisayarda kalır</div>
+  </aside>
+
+  <!-- ======================= ANA ALAN ======================= -->
+  <main id="ana">
+
+    <!-- Karsilama -->
+    <section id="karsilama" class="karsilama">
+      <div class="karsilama-ic">
+        <div class="radar"><div class="radar-tarama"></div><div class="radar-halka h1"></div><div class="radar-halka h2"></div><div class="radar-halka h3"></div></div>
+        <h1>Sonar kaydını yükle, gölün dibini gör.</h1>
+        <p>Garmin balık bulucunun kartındaki <code>Sonar*.RSD</code> dosyasını bırak. Derinlik haritası, sonar görüntüleri ve grafikler birkaç dakikada hazır; zemin sınıflaması, hacim, yeni rota ve balık taraması tek tıkla.</p>
+        <label class="buyuk-yukle" id="buyukYukle" tabindex="0">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <b>.RSD dosyasını buraya bırak</b><span>ya da tıklayıp seç</span>
+        </label>
+        <div class="ozellikler">
+          <div><i>◎</i><b>Derinlik haritası</b><span>uydu üzerinde, eş derinlik çizgileriyle</span></div>
+          <div><i>≋</i><b>Canlı sonar kesiti</b><span>haritada tıkla, o noktanın görüntüsü</span></div>
+          <div><i>▦</i><b>Zemin & hacim</b><span>çamur bölgeleri, hacim, numune noktaları</span></div>
+          <div><i>⌁</i><b>Rota & rapor</b><span>Garmin'e yüklenir GPX, tek dosya rapor</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Proje -->
+    <section id="proje" hidden>
+      <header class="ust">
+        <div class="ust-sol">
+          <input id="projeAd" class="proje-ad" spellcheck="false" aria-label="Proje adı">
+          <div id="projeMeta" class="proje-meta"></div>
+        </div>
+        <div class="ust-sag">
+          <button class="btn hayalet" id="raporBtn" title="Rapor oluştur / aç">
+            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Rapor</span></button>
+          <button class="btn hayalet tehlike" id="silBtn" title="Projeyi sil">
+            <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>
+        </div>
+      </header>
+
+      <div id="kpiler" class="kpiler"></div>
+
+      <!-- temel analiz suruyorsa -->
+      <div id="isleniyor" class="isleniyor" hidden>
+        <div class="radar kucuk"><div class="radar-tarama"></div><div class="radar-halka h1"></div><div class="radar-halka h2"></div></div>
+        <div class="isleniyor-ic">
+          <h2>Kayıt analiz ediliyor</h2>
+          <p id="isleniyorAdim">Hazırlanıyor…</p>
+          <div class="cubuk buyuk"><i id="isleniyorCubuk"></i></div>
+          <ol id="isleniyorAdimlar" class="adimlar"></ol>
+        </div>
+      </div>
+      <div id="hataKutu" class="hata-kutu" hidden></div>
+
+      <nav id="sekmeler" class="sekmeler" hidden>
+        <button data-sekme="harita" class="aktif">Harita</button>
+        <button data-sekme="sonar">Sonar</button>
+        <button data-sekme="grafik">Grafikler</button>
+        <button data-sekme="analiz">Analizler <em id="analizRozet" hidden></em></button>
+        <button data-sekme="dosya">Dosyalar</button>
+      </nav>
+
+      <!-- HARITA -->
+      <div class="sekme" id="sekme-harita" hidden>
+        <div class="harita-kap">
+          <div id="harita"></div>
+          <div class="katman-panel" id="katmanPanel">
+            <div class="kp-baslik">Altlık</div>
+            <div class="seg" id="altlikSec">
+              <button data-a="uydu" class="aktif">Uydu</button><button data-a="koyu">Koyu</button><button data-a="yok">Yok</button>
+            </div>
+            <div class="kp-baslik">Katmanlar</div>
+            <div id="katmanListe"></div>
+          </div>
+          <div class="efsane" id="efsane" hidden></div>
+          <div class="harita-ipucu" id="haritaIpucu">Rotaya tıkla: o noktanın sonar kesiti açılır</div>
+          <div class="kesit-cekmece" id="kesitCekmece" hidden>
+            <div class="kc-ust"><b>Sonar kesiti</b><span id="kcBilgi"></span>
+              <button class="btn hayalet kucuk" id="kcSonar">Sonar sekmesinde aç →</button>
+              <button class="kapat" id="kcKapat" aria-label="Kapat">×</button></div>
+            <div class="kesit-gorsel"><img id="kcImg" alt="Sonar kesiti"><canvas id="kcCanvas"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SONAR -->
+      <div class="sekme" id="sekme-sonar" hidden>
+        <div class="kart sonar-kart">
+          <div class="sonar-arac">
+            <button class="btn ikon" id="oynat" title="Oynat / durdur" aria-label="Oynat"><svg viewBox="0 0 24 24"><path id="oynatIkon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+            <div class="okuma"><span>Zaman</span><b id="okZaman">–</b></div>
+            <div class="okuma"><span>Derinlik</span><b id="okDerinlik">–</b></div>
+            <div class="okuma"><span>Ping</span><b id="okPing">–</b></div>
+            <div class="bosluk"></div>
+            <label class="sec">Genişlik
+              <select id="genislik"><option value="300">Dar (~12 sn)</option><option value="600" selected>Orta (~25 sn)</option><option value="1200">Geniş (~50 sn)</option><option value="2400">Çok geniş (~1,5 dk)</option></select></label>
+            <label class="sec">Palet
+              <select id="palet"><option value="bakir">Bakır</option><option value="okyanus">Okyanus</option><option value="sicak">Sıcak</option><option value="gri">Gri</option></select></label>
+          </div>
+          <div class="kesit-gorsel buyuk"><img id="sonarImg" alt="Sonar kesiti"><canvas id="sonarCanvas"></canvas><div class="yukleniyor" id="sonarYuk"></div></div>
+          <input type="range" id="zamanCubuk" class="zaman-cubuk" min="0" max="100" value="0" aria-label="Kayıt içinde konum">
+          <div class="cubuk-etiket"><span id="zcBas">0 dk</span><span>Çubuğu sürükle ya da ←/→ tuşlarını kullan</span><span id="zcSon">–</span></div>
+        </div>
+        <div class="kart">
+          <div class="kart-baslik">Tüm kayıt <span class="ince">tıkla: o ana git</span></div>
+          <div class="genel-bakis"><img id="genelImg" alt="Tüm kaydın sonar görüntüsü"></div>
+        </div>
+      </div>
+
+      <!-- GRAFIK -->
+      <div class="sekme" id="sekme-grafik" hidden>
+        <div class="grafik-izgara">
+          <div class="kart"><div class="kart-baslik">Derinlik <span class="ince">noktaya tıkla: sonar kesitine git</span></div><div class="grafik-kap"><canvas id="gDerinlik"></canvas></div></div>
+          <div class="kart"><div class="kart-baslik">Tekne hızı</div><div class="grafik-kap kisa"><canvas id="gHiz"></canvas></div></div>
+          <div class="kart"><div class="kart-baslik">Su sıcaklığı</div><div class="grafik-kap kisa"><canvas id="gSicaklik"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- ANALIZ -->
+      <div class="sekme" id="sekme-analiz" hidden>
+        <p class="aciklama">Temel analiz her yüklemede otomatik çalışır. Diğerleri isteğe bağlı: ihtiyacın olanı çalıştır, sonuçlar haritaya ve dosyalara eklenir.</p>
+        <div id="analizKartlar" class="analiz-izgara"></div>
+      </div>
+
+      <!-- DOSYA -->
+      <div class="sekme" id="sekme-dosya" hidden>
+        <div id="dosyaListe"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="buyutec" class="buyutec" hidden><button class="kapat" aria-label="Kapat">×</button><img alt=""><div class="buyutec-alt"><span></span><a class="btn kucuk" download>İndir</a></div></div>
+<div id="bildirim" class="bildirim" hidden></div>
+<div id="birak" class="birak" hidden><div><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0-4-4m4 4 4-4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Bırak, analiz başlasın</b></div></div>
+
+<script src="/static/vendor/leaflet.js"></script>
+<script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/app.js"></script>
+</body>
+</html>

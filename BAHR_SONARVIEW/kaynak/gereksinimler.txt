@@ -8,4 +8,5 @@ pandas
 matplotlib
 pillow
 pyproj
+pyshp
 pyinstaller

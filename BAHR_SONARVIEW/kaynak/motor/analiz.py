@@ -9,8 +9,8 @@ import pandas as pd
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from ortak import PingOkuyucu
 
-RSD = "ham.RSD"
 META = "cozumleme/meta/B001_ds_hifreq_meta.csv"
 OUT = "cozumleme/grafikler"
 os.makedirs(OUT, exist_ok=True)
@@ -29,10 +29,7 @@ d.loc[d["speed_ms"] > 5, "speed_ms"] = np.nan
 
 
 def read_ping(f, row):
-    f.seek(int(row["index"]) + int(row["son_offset"]))
-    n = int(row["ping_cnt"])
-    a = np.frombuffer(f.read(n * 2), dtype="<u2")
-    return a if a.size == n else None
+    return f.oku(row)
 
 
 # ---------- 1) Echogram (tum kayit + yakin plan) ----------
@@ -40,7 +37,7 @@ def echogram(sub, depth_max, nbins, fname, title, step=1):
     sub = sub.iloc[::step]
     grid = np.linspace(0, depth_max, nbins)
     img = np.full((nbins, len(sub)), np.nan, dtype=np.float32)
-    with open(RSD, "rb") as f:
+    with PingOkuyucu() as f:
         for j, (_, r) in enumerate(sub.iterrows()):
             a = read_ping(f, r)
             if a is None:

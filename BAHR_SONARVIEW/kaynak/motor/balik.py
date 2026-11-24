@@ -26,7 +26,8 @@ from uydu_altlik import Mozaik, merc, altlik
 
 OUT = "cozumleme/balik"
 os.makedirs(OUT, exist_ok=True)
-RINGDOWN = 1.40
+from ortak import parametreler as _par
+RINGDOWN = 1.40 + float(_par().get("batma_payi") or 0)   # cinlama + batma payi
 DIP_PAYI = 0.15
 PING_HZ = 26.0
 

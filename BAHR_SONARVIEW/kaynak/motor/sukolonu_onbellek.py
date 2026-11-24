@@ -8,7 +8,8 @@ import os
 import numpy as np
 import pandas as pd
 
-RSD = "ham.RSD"
+from ortak import PingOkuyucu
+
 META = "cozumleme/meta/B001_ds_hifreq_meta.csv"
 OUT = "cozumleme/sukolonu"
 DZ = 0.02
@@ -23,14 +24,13 @@ d = d[has & (has.groupby(seg).transform("sum") >= 1000)].reset_index(drop=True)
 ZMAX = float(min(30.0, np.ceil((d["inst_dep_m"].quantile(0.995) + 0.6) / 0.2) * 0.2))
 nb = int(round(ZMAX / DZ))
 wc = np.zeros((len(d), nb), np.uint16)
-with open(RSD, "rb") as f:
+with PingOkuyucu() as okuyucu:
     for i, r in enumerate(d.itertuples()):
-        f.seek(int(r.index) + int(r.son_offset))
-        a = np.frombuffer(f.read(int(r.ping_cnt) * 2), "<u2")
-        if a.size != r.ping_cnt:
+        a = okuyucu.oku(r)
+        if a is None:
             continue
-        dz = r.max_range / a.size
-        kut = np.minimum((np.arange(a.size) * dz / DZ).astype(int), nb)
+        dz = (r.max_range - r.min_range) / a.size
+        kut = np.minimum(((r.min_range + np.arange(a.size) * dz) / DZ).astype(int), nb)
         sel = kut < nb
         np.maximum.at(wc[i], kut[sel], a[sel])
         if i % 2000 == 0:

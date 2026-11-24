@@ -16,8 +16,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.tri as mtri
 from uydu_altlik import kontur_seviyeleri
+from ortak import PingOkuyucu
 
-RSD = "ham.RSD"
 META = "cozumleme/meta/B001_ds_hifreq_meta.csv"
 OUT = "cozumleme/zemin"
 CELL = 1.0
@@ -58,24 +58,26 @@ if os.path.exists(CACHE):
     prof = z_["prof"]
     print("Onbellekten yuklendi:", CACHE)
 
-with open(RSD, "rb") as f:
+with PingOkuyucu() as okuyucu:
     for i, r in enumerate(d.itertuples() if not os.path.exists(CACHE) else []):
         if i % 2000 == 0:
             print(f"@@ilerleme {i / n:.3f}", flush=True)
-        f.seek(int(r.index) + int(r.son_offset))
-        a = np.frombuffer(f.read(int(r.ping_cnt) * 2), "<u2").astype(np.float32)
-        if a.size != r.ping_cnt or not np.isfinite(r.dsm):
+        a = okuyucu.oku(r)
+        if a is None or not np.isfinite(r.dsm):
             continue
-        dz = r.max_range / a.size
+        a = a.astype(np.float32)
+        z0 = float(r.min_range)                       # batma payi varsa > 0
+        dz = (r.max_range - z0) / a.size
         s = movavg(a, 5)
         # --- tabani hassaslastir: tahmini derinlik +-0.35 m icinde en dik yukselis
-        lo = max(int((r.dsm - 0.35) / dz), 10)
-        hi = min(int((r.dsm + 0.35) / dz), a.size - 10)
+        lo = max(int((r.dsm - 0.35 - z0) / dz), 10)
+        hi = min(int((r.dsm + 0.35 - z0) / dz), a.size - 10)
         if hi - lo < 10:
             continue
         g = s[lo + 3:hi + 3] - s[lo - 3:hi - 3]
         b = lo + int(np.argmax(g))
-        bz = b * dz
+        bz = z0 + b * dz
+        br = b * dz                                   # vericiden dibe uzaklik
         # --- su kolonu gurultu tabani (kazanc farklarini sifirlamak icin referans)
         w0, w1 = int(0.45 * b), int(0.85 * b)
         if w1 - w0 < 10:
@@ -105,12 +107,12 @@ with open(RSD, "rb") as f:
         if dc is not None:
             zz = np.arange(dc.size) * dz
             feat["decay"][i] = -np.polyfit(zz, movavg(dc, 9), 1)[0]   # kuyruk sonumlenme hizi (birim/m)
-        e2 = win(bz - 0.15, bz + 0.15)                        # ikinci yanki: 2x derinlik
+        e2 = win(br - 0.15, br + 0.15)                        # ikinci yanki: 2x derinlik
         if e2 is not None and e2.size > 5:
             feat["e2"][i] = np.percentile(e2, 90)
         feat["above"][i] = np.percentile(ab, 75)              # tabanin hemen ustundeki yanki -> bitki / askida tabaka
         # tabana gore hizalanmis profil (kesit gorselleri icin)
-        z = np.arange(a.size) * dz - bz
+        z = np.arange(a.size) * dz - br
         prof[i] = np.interp(ZREL, z, an, left=np.nan, right=np.nan)
 
 if not os.path.exists(CACHE):

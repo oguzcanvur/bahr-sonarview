@@ -12,6 +12,7 @@ cozumleme/
 rapor/
 sonarlab/projeler/
 BAHR_SONARVIEW/BAHR SONARVIEW/Projeler/
+BAHR_SONARVIEW/Projeler/
 
 # Derleme ciktilari (program Release sayfasinda zip olarak dagitilir)
 BAHR_SONARVIEW/BAHR SONARVIEW/
@@ -29,3 +30,8 @@ analiz_gunlugu.txt
 # Yerel arac ayarlari
 .claude/
 graphify-out/
+
+# Program ayarlari (kullaniciya ozel)
+ayarlar.json
+firma_logo.png
+_guncelleme/

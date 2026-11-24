@@ -75,7 +75,9 @@ import webbrowser  # noqa: E402
 import _bagimliliklar  # noqa: E402,F401  (paketleyicinin motor kutuphanelerini tanimasi icin)
 import sunucu  # noqa: E402
 
-AD = "BAHR SONARVIEW"
+import surum  # noqa: E402
+
+AD = surum.AD
 
 
 def mesaj(metin, baslik=AD):
@@ -110,45 +112,119 @@ class Api:
     def __init__(self):
         self._pencere = None
 
-    def kayit_ac(self):
+    def _sec(self, turler, coklu=False):
         import webview
-        r = self._pencere.create_file_dialog(webview.FileDialog.OPEN, allow_multiple=False,
-                                            file_types=("Garmin sonar kaydı (*.RSD;*.rsd)", "Tüm dosyalar (*.*)"))
+        r = self._pencere.create_file_dialog(webview.FileDialog.OPEN, allow_multiple=coklu, file_types=turler)
+        if not r:
+            return []
+        return list(r) if isinstance(r, (list, tuple)) else [r]
+
+    def _kaydet_yolu(self, ad):
+        import webview
+        r = self._pencere.create_file_dialog(webview.FileDialog.SAVE, save_filename=ad)
+        if not r:
+            return None
+        return r[0] if isinstance(r, (list, tuple)) else r
+
+    def kayit_ac(self):
+        r = self._sec(("Garmin sonar kaydı (*.RSD;*.rsd)", "Tüm dosyalar (*.*)"))
         if not r:
             return None
         try:
-            return sunucu.proje_yoldan(r[0] if isinstance(r, (list, tuple)) else r)
+            return sunucu.proje_yoldan(r[0])
+        except Exception as e:  # noqa: BLE001
+            return {"hata": str(e)}
+
+    def kayit_ekle(self, pid):
+        from pathlib import Path
+        r = self._sec(("Garmin sonar kaydı (*.RSD;*.rsd)", "Tüm dosyalar (*.*)"), coklu=True)
+        if not r:
+            return None
+        try:
+            v = None
+            for y in r:
+                v = sunucu.kayit_ekle(pid, Path(y), Path(y).name)
+            return v
         except Exception as e:  # noqa: BLE001
             return {"hata": str(e)}
 
     def dosya_kaydet(self, pid, yol):
-        import webview
         try:
             kaynak = sunucu.cikti_yolu(pid, yol)
         except Exception:
             return {"hata": "Dosya bulunamadı"}
-        r = self._pencere.create_file_dialog(webview.FileDialog.SAVE, save_filename=kaynak.name)
-        if not r:
+        hedef = self._kaydet_yolu(kaynak.name)
+        if not hedef:
             return None
-        hedef = r[0] if isinstance(r, (list, tuple)) else r
         shutil.copyfile(kaynak, hedef)
         return {"kaydedildi": str(hedef)}
 
-    def klasor_ac(self, pid=None):
-        yol = sunucu.PROJELER if not pid else sunucu.PROJELER / pid / "cozumleme"
+    def hata_raporu_kaydet(self, pid=None):
+        hedef = self._kaydet_yolu(f"BAHR_hata_raporu_{time.strftime('%Y%m%d_%H%M')}.zip")
+        if not hedef:
+            return None
+        with open(hedef, "wb") as f:
+            f.write(sunucu.hata_raporu(pid or None))
+        return {"kaydedildi": str(hedef)}
+
+    def sablon_kaydet(self):
+        hedef = self._kaydet_yolu("dogrulama_sablonu.csv")
+        if not hedef:
+            return None
+        with open(hedef, "wb") as f:
+            f.write(sunucu.dogrulama_sablonu().body)
+        return {"kaydedildi": str(hedef)}
+
+    def dogrulama_sec(self, pid):
+        r = self._sec(("CSV dosyası (*.csv;*.txt)", "Tüm dosyalar (*.*)"))
+        if not r:
+            return None
+        try:
+            with open(r[0], "rb") as f:
+                (sunucu.PROJELER / pid / "dogrulama.csv").write_bytes(f.read())
+            sunucu.kuyruga_ekle(pid, "dogrulama")
+            return sunucu.oku(pid)
+        except Exception as e:  # noqa: BLE001
+            return {"hata": str(e)}
+
+    def logo_sec(self):
+        r = self._sec(("Resim (*.png;*.jpg;*.jpeg;*.bmp)", "Tüm dosyalar (*.*)"))
+        if not r:
+            return None
+        try:
+            with open(r[0], "rb") as f:
+                return {"yol": sunucu.logo_kaydet(f.read())}
+        except Exception as e:  # noqa: BLE001
+            return {"hata": str(e)}
+
+    def klasor_ac(self, pid=None, alt=""):
+        yol = sunucu.PROJELER if not pid else sunucu.PROJELER / pid / "cozumleme" / alt
         os.startfile(str(yol if yol.exists() else sunucu.PROJELER))
         return True
 
-    def rapor_ac(self, pid):
+    def ac(self, pid, yol):
         try:
-            os.startfile(str(sunucu.cikti_yolu(pid, "rapor.html")))
+            os.startfile(str(sunucu.cikti_yolu(pid, yol)))
             return True
         except Exception:
-            return {"hata": "Rapor bulunamadı"}
+            return {"hata": "Dosya bulunamadı"}
+
+    def rapor_ac(self, pid, pdf=False):
+        for ad in (["rapor.pdf"] if pdf else []) + ["rapor.html"]:
+            try:
+                os.startfile(str(sunucu.cikti_yolu(pid, ad)))
+                return True
+            except Exception:
+                continue
+        return {"hata": "Rapor bulunamadı"}
 
     def disari_ac(self, url):
         if str(url).startswith(("http://", "https://")):
             webbrowser.open(url)
+        return True
+
+    def uygulamayi_kapat(self):
+        threading.Timer(0.3, lambda: self._pencere.destroy()).start()
         return True
 
 

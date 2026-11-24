@@ -16,6 +16,12 @@ import matplotlib.tri as mtri
 from matplotlib import colormaps
 from PIL import Image
 
+from ortak import parametreler
+
+PALET = parametreler().get("renk_paleti") or "viridis_r"
+if PALET not in colormaps:
+    PALET = "viridis_r"
+
 WEB = "cozumleme/web"
 os.makedirs(WEB, exist_ok=True)
 META = "cozumleme/meta/B001_ds_hifreq_meta.csv"
@@ -175,14 +181,16 @@ def temel():
     vmax = float(bat["derinlik_m"].quantile(0.99))
     vmin = float(bat["derinlik_m"].quantile(0.01))
     k = raster(bat["lat"].to_numpy(), bat["lon"].to_numpy(), bat["derinlik_m"].to_numpy(), "batimetri.png",
-               "viridis_r", vmin, vmax)
-    k.update({"min": round(vmin, 2), "max": round(vmax, 2), "cmap": "viridis_r"})
+               PALET, vmin, vmax)
+    k.update({"min": round(vmin, 2), "max": round(vmax, 2), "cmap": PALET})
     sev = kontur_seviyeleri(bat["derinlik_m"])
     yaz("katman_batimetri.json", k)
     yaz("kontur.geojson", konturlar(bat["lat"].to_numpy(), bat["lon"].to_numpy(), bat["derinlik_m"].to_numpy(), sev))
     # renk skalasi ornegi (arayuz efsanesi icin)
-    cm = colormaps["viridis_r"]
-    yaz("renk_viridis_r.json", ["#%02x%02x%02x" % tuple(int(255 * c) for c in cm(i / 10)[:3]) for i in range(11)])
+    cm = colormaps[PALET]
+    renk = ["#%02x%02x%02x" % tuple(int(255 * c) for c in cm(i / 10)[:3]) for i in range(11)]
+    yaz("renk.json", renk)
+    yaz("renk_viridis_r.json", renk)          # eski arayuz surumleri icin
 
 
 # ====================================================================== ZEMIN
@@ -193,7 +201,11 @@ def zemin():
     k = raster(g["lat"].to_numpy(), g["lon"].to_numpy(), g["sinif"].to_numpy(float), "zemin.png", None, 0, 2,
                kategorik=renk, alpha=0.7)
     oz = pd.read_csv("cozumleme/zemin/zemin_sinif_ozeti.csv")
-    k["siniflar"] = [{"sinif": int(r["sinif"]), "ad": str(r["yorum"]), "renk": renk[int(r["sinif"])],
+    adlar = {}
+    if os.path.exists("sinif_adlari.json"):                  # dogrulamadan gelen numune adlari
+        with open("sinif_adlari.json", encoding="utf-8") as f:
+            adlar = json.load(f)
+    k["siniflar"] = [{"sinif": int(r["sinif"]), "ad": adlar.get(str(int(r["sinif"])), str(r["yorum"])), "renk": renk[int(r["sinif"])],
                       "alan_yuzde": float(r["alan_yuzde"]), "derinlik": float(r["derinlik"])} for _, r in oz.iterrows()]
     yaz("katman_zemin.json", k)
     for c, ad, cmap in [("peak", "sertlik", "YlOrBr"), ("contrast", "penetrasyon", "PuBu")]:
@@ -214,7 +226,7 @@ def uydu():
     gg = pd.read_csv("cozumleme/morfoloji/tum_golet_grid.csv")
     vmax = float(gg["derinlik"].quantile(0.99))
     k = raster(gg["lat"].to_numpy(), gg["lon"].to_numpy(), gg["derinlik"].to_numpy(), "tum_golet.png",
-               "viridis_r", 0.0, vmax, max_kenar=3.0, alpha=0.75)
+               PALET, 0.0, vmax, max_kenar=3.0, alpha=0.75)
     k.update({"min": 0.0, "max": round(vmax, 2)})
     yaz("katman_tum_golet.json", k)
     rp = pd.read_csv("cozumleme/morfoloji/yeni_rota_noktalari.csv")

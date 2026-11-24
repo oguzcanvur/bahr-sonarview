@@ -25,7 +25,8 @@ META = "cozumleme/meta/B001_ds_hifreq_meta.csv"
 CACHE = "cozumleme/zemin/_ping_oznitelik_onbellek.npz"
 OUT = "cozumleme/bitki"
 ZREL = np.arange(-0.8, 2.5, 0.01)       # zemin.py ile ayni eksen
-RINGDOWN = 1.35                          # vericiden bu uzakliga kadar olcum guvenilmez (m)
+from ortak import parametreler as _par
+RINGDOWN = 1.35 + float(_par().get("batma_payi") or 0)                         # vericiden bu uzakliga kadar olcum guvenilmez (m)
 PENCERE = (-0.50, -0.08)                 # tabana gore incelenen pencere (m); -0.08..0 dip secim izi
 MIN_PENCERE = 0.20                       # gecerli sayilmak icin en az bu kadar temiz pencere (m)
 CELL, SIGMA, MAX_EDGE = 1.0, 4.0, 7.0

@@ -8,13 +8,17 @@ import pandas as pd
 from matplotlib import colormaps
 from PIL import Image
 
+from ortak import PingOkuyucu
+
 PALETLER = {"bakir": "copper", "okyanus": "viridis", "gri": "gray", "sicak": "inferno"}
 
 
 @lru_cache(maxsize=8)
 def _meta(proje, mtime):
     m = pd.read_csv(os.path.join(proje, "cozumleme/meta/B001_ds_hifreq_meta.csv"),
-                    usecols=["index", "son_offset", "ping_cnt", "min_range", "max_range", "inst_dep_m"])
+                    usecols=lambda c: c in {"index", "son_offset", "ping_cnt", "min_range", "max_range", "inst_dep_m", "dosya", "elle"})
+    if "dosya" not in m:
+        m["dosya"] = "ham.RSD"
     return m
 
 
@@ -30,11 +34,11 @@ def _olcek(proje, mtime):
     m = _meta(proje, mtime)
     sec = np.linspace(0, len(m) - 1, 300).astype(int)
     vals = []
-    with open(os.path.join(proje, "ham.RSD"), "rb") as f:
+    with PingOkuyucu(proje) as f:
         for i in sec:
-            r = m.iloc[i]
-            f.seek(int(r["index"]) + int(r["son_offset"]))
-            vals.append(np.frombuffer(f.read(int(r["ping_cnt"]) * 2), "<u2"))
+            a = f.oku(m.iloc[i])
+            if a is not None:
+                vals.append(a)
     v = np.concatenate(vals)
     return float(np.percentile(v, 8)), float(np.percentile(v, 99.8))
 
@@ -50,13 +54,13 @@ def kesit_png(proje, merkez, genislik=600, derinlik_max=4.0, yukseklik=360, pale
     a0 = max(0, a1 - genislik)
     grid = np.linspace(0, derinlik_max, yukseklik)
     img = np.zeros((yukseklik, a1 - a0), np.float32)
-    with open(os.path.join(proje, "ham.RSD"), "rb") as f:
+    with PingOkuyucu(proje) as f:
         for j, i in enumerate(range(a0, a1)):
             r = m.iloc[i]
-            f.seek(int(r["index"]) + int(r["son_offset"]))
-            a = np.frombuffer(f.read(int(r["ping_cnt"]) * 2), "<u2").astype(np.float32)
-            if a.size < 2:
+            a = f.oku(r)
+            if a is None or a.size < 2:
                 continue
+            a = a.astype(np.float32)
             z = np.linspace(r["min_range"], r["max_range"], a.size)
             img[:, j] = np.interp(grid, z, a, right=0)
     # gama 1.6: orta tonlari koyulastirir; dip ve su ici hedefler ayrisir

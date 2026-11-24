@@ -6,6 +6,12 @@ kendiliginden goremez; burada acikca import edilirler. Bu dosyanin baska islevi 
 import base64  # noqa: F401
 import colorsys  # noqa: F401
 import glob  # noqa: F401
+import hashlib  # noqa: F401
+import importlib.metadata  # noqa: F401
+import platform  # noqa: F401
+import re  # noqa: F401
+import tempfile  # noqa: F401
+import zipfile  # noqa: F401
 import html  # noqa: F401
 import io  # noqa: F401
 import json  # noqa: F401
@@ -25,4 +31,6 @@ import numpy  # noqa: F401
 import pandas  # noqa: F401
 import pingverter  # noqa: F401
 import pyproj  # noqa: F401
+import shapefile  # noqa: F401  (pyshp)
+from PIL import TiffImagePlugin  # noqa: F401
 from PIL import Image, ImageFilter  # noqa: F401

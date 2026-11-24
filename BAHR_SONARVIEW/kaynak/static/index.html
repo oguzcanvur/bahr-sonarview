@@ -4,17 +4,43 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BAHR SONARVIEW</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230b1220' stroke='%2322d3ee' stroke-width='2'/%3E%3Cpath d='M16 16 L16 4 A12 12 0 0 1 27 12 Z' fill='%2322d3ee' opacity='.7'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="/static/logo.png">
 <link rel="stylesheet" href="/static/vendor/leaflet.css">
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
+<div id="acilis" class="acilis" aria-hidden="true">
+  <video id="acilisVideo" src="/static/acilis.mp4" muted playsinline preload="auto"></video>
+  <button id="acilisGec" class="acilis-gec">Geç ›</button>
+</div>
+<script>
+/* acilis animasyonu: oturumda bir kez; ayarlardan kapatilabilir */
+(function () {
+  var el = document.getElementById("acilis"), v = document.getElementById("acilisVideo"), bitti = false;
+  function kapat() {
+    if (bitti) return; bitti = true;
+    el.classList.add("kapaniyor");
+    setTimeout(function () { el.remove(); }, 700);
+    try { sessionStorage.setItem("acilis", "1"); } catch (e) {}
+  }
+  window.acilisKapat = kapat;
+  var gosterildi = false;
+  try { gosterildi = sessionStorage.getItem("acilis") === "1" || localStorage.getItem("acilis_kapali") === "1"; } catch (e) {}
+  if (gosterildi) { el.remove(); bitti = true; return; }
+  v.addEventListener("ended", kapat);
+  v.addEventListener("error", kapat);
+  el.addEventListener("click", kapat);
+  document.addEventListener("keydown", function k(e) { if (!bitti) { kapat(); document.removeEventListener("keydown", k); } });
+  var p = v.play(); if (p && p.catch) p.catch(kapat);
+  setTimeout(kapat, 12000);
+})();
+</script>
 <div id="uygulama">
 
   <!-- ======================= SOL PANEL ======================= -->
   <aside id="kenar">
     <div class="marka">
-      <svg viewBox="0 0 32 32" class="logo" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="16" cy="16" r="8" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".5"/><path class="tarama" d="M16 16 L16 2 A14 14 0 0 1 29 11 Z" fill="currentColor" opacity=".55"/></svg>
+      <img src="/static/logo.png" class="logo" alt="" aria-hidden="true">
       <div><b>BAHR <em>SONARVIEW</em></b><span>Sonar analiz programı</span></div>
     </div>
 
@@ -29,28 +55,36 @@
     </div>
 
     <div class="baslik-kucuk">Projeler</div>
+    <input id="projeAra" class="ara" type="search" placeholder="Projelerde ara…" aria-label="Projelerde ara">
     <nav id="projeListe" class="proje-liste"></nav>
+
+    <div class="kenar-menu">
+      <button class="menu-oge" id="ayarlarBtn" title="Ayarlar"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>Ayarlar</span></button>
+      <button class="menu-oge" id="yardimBtn" title="Yardım"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7M12 17h.01" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg><span>Yardım</span></button>
+      <button class="menu-oge" id="hakkindaBtn" title="Hakkında"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 11v6M12 7.5h.01" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg><span>Hakkında</span><em id="guncelRozet" class="rozet" hidden>yeni</em></button>
+    </div>
     <div class="kenar-alt">Yerel çalışır · veriler bu bilgisayarda kalır</div>
   </aside>
 
   <!-- ======================= ANA ALAN ======================= -->
   <main id="ana">
+    <div id="guncelBant" class="bant bilgi" hidden></div>
 
     <!-- Karsilama -->
     <section id="karsilama" class="karsilama">
       <div class="karsilama-ic">
-        <div class="radar"><div class="radar-tarama"></div><div class="radar-halka h1"></div><div class="radar-halka h2"></div><div class="radar-halka h3"></div></div>
+        <img src="/static/logo.png" class="karsilama-logo" alt="">
         <h1>Sonar kaydını yükle, gölün dibini gör.</h1>
-        <p>Garmin balık bulucunun kartındaki <code>Sonar*.RSD</code> dosyasını bırak. Derinlik haritası, sonar görüntüleri ve grafikler birkaç dakikada hazır; zemin sınıflaması, hacim, yeni rota ve balık taraması tek tıkla.</p>
+        <p>Garmin balık bulucunun kartındaki <code>Sonar*.RSD</code> dosyasını bırak. Derinlik haritası, sonar görüntüleri ve grafikler birkaç dakikada hazır; zemin, hacim, değişim analizi ve mühendislik çıktıları tek tıkla.</p>
         <label class="buyuk-yukle" id="buyukYukle" tabindex="0">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <b>.RSD dosyasını buraya bırak</b><span>ya da tıklayıp seç</span>
         </label>
         <div class="ozellikler">
           <div><i>◎</i><b>Derinlik haritası</b><span>uydu üzerinde, eş derinlik çizgileriyle</span></div>
-          <div><i>≋</i><b>Canlı sonar kesiti</b><span>haritada tıkla, o noktanın görüntüsü</span></div>
-          <div><i>▦</i><b>Zemin & hacim</b><span>çamur bölgeleri, hacim, numune noktaları</span></div>
-          <div><i>⌁</i><b>Rota & rapor</b><span>Garmin'e yüklenir GPX, tek dosya rapor</span></div>
+          <div><i>≋</i><b>Canlı sonar kesiti</b><span>dip çizgisini elle düzelt</span></div>
+          <div><i>▦</i><b>Zemin, hacim, değişim</b><span>kot–alan–hacim, sediman birikimi</span></div>
+          <div><i>⌁</i><b>Mühendislik çıktıları</b><span>TUREF/UTM, GeoTIFF, SHP, DXF, PDF</span></div>
         </div>
       </div>
     </section>
@@ -63,14 +97,36 @@
           <div id="projeMeta" class="proje-meta"></div>
         </div>
         <div class="ust-sag">
+          <button class="btn hayalet" id="kayitEkleBtn" title="Aynı projeye başka bir RSD kaydı ekle">
+            <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg><span>Kayıt ekle</span></button>
+          <button class="btn hayalet" id="projeAyarBtn" title="Ölçüm parametreleri ve kayıtlar">
+            <svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="16" cy="6" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="10" cy="12" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="18" cy="18" r="2" fill="none" stroke="currentColor" stroke-width="1.6"/></svg><span>Proje ayarları</span></button>
           <button class="btn hayalet" id="klasorBtn" title="Çıktı klasörünü Dosya Gezgini'nde aç" hidden>
-            <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Klasörü aç</span></button>
-          <button class="btn hayalet" id="raporBtn" title="Rapor oluştur / aç">
-            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Rapor</span></button>
-          <button class="btn hayalet tehlike" id="silBtn" title="Projeyi sil">
-            <svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg></button>
+            <svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Klasör</span></button>
+          <div class="acilir">
+            <button class="btn" id="raporBtn" title="Rapor oluştur / aç">
+              <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Rapor</span><i class="ok">▾</i></button>
+            <div class="menu" id="raporMenu" hidden>
+              <button data-r="pdf">PDF raporu aç</button>
+              <button data-r="html">HTML raporu aç</button>
+              <button data-r="yeni">Raporu yeniden oluştur</button>
+            </div>
+          </div>
+          <div class="acilir">
+            <button class="btn hayalet ikon-btn" id="dahaBtn" title="Diğer işlemler" aria-label="Diğer işlemler">⋯</button>
+            <div class="menu sag" id="dahaMenu" hidden>
+              <button data-d="yeniden">Tüm analizleri yeniden hesapla</button>
+              <button data-d="hata">Hata raporu oluştur</button>
+              <button data-d="sil" class="tehlike">Projeyi sil</button>
+            </div>
+          </div>
         </div>
       </header>
+
+      <div id="guncelDegil" class="bant uyari" hidden>
+        <span><b>Sonuçlar güncel değil.</b> Ölçüm parametreleri, kayıtlar ya da elle düzeltmeler değişti.</span>
+        <button class="btn kucuk" id="yenidenBtn">Yeniden hesapla</button>
+      </div>
 
       <div id="kpiler" class="kpiler"></div>
 
@@ -83,11 +139,13 @@
           <div class="cubuk buyuk"><i id="isleniyorCubuk"></i></div>
           <ol id="isleniyorAdimlar" class="adimlar"></ol>
         </div>
+        <button class="btn hayalet kucuk" id="temelIptal">İptal</button>
       </div>
       <div id="hataKutu" class="hata-kutu" hidden></div>
 
       <nav id="sekmeler" class="sekmeler" hidden>
         <button data-sekme="harita" class="aktif">Harita</button>
+        <button data-sekme="3d">3B</button>
         <button data-sekme="sonar">Sonar</button>
         <button data-sekme="grafik">Grafikler</button>
         <button data-sekme="analiz">Analizler <em id="analizRozet" hidden></em></button>
@@ -98,6 +156,15 @@
       <div class="sekme" id="sekme-harita" hidden>
         <div class="harita-kap">
           <div id="harita"></div>
+          <div class="arac-cubugu" id="aracCubugu">
+            <button data-arac="mesafe" title="Mesafe ölç"><svg viewBox="0 0 24 24"><path d="M3 17 17 3l4 4L7 21zM7 13l2 2M10 10l2 2M13 7l2 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+            <button data-arac="alan" title="Alan ölç"><svg viewBox="0 0 24 24"><path d="M4 7l7-3 9 5-3 10-11 1z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+            <button data-arac="profil" title="Derinlik profili çiz"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 10c3 0 4 6 7 6s4-4 6-4 3 3 5 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+            <button data-arac="alan3d" title="3B topografya için alan seç"><svg viewBox="0 0 24 24"><path d="M12 3 4 7.5v9L12 21l8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+            <button data-arac="not" title="Not / işaret ekle"><svg viewBox="0 0 24 24"><path d="M12 21s-6-5.3-6-11a6 6 0 1 1 12 0c0 5.7-6 11-6 11Z" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="12" cy="10" r="2" fill="currentColor"/></svg></button>
+            <button data-arac="temizle" title="Çizimleri temizle"><svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button>
+          </div>
+          <div class="arac-ipucu" id="aracIpucu" hidden></div>
           <div class="katman-panel" id="katmanPanel">
             <div class="kp-baslik">Altlık</div>
             <div class="seg" id="altlikSec">
@@ -114,6 +181,56 @@
               <button class="kapat" id="kcKapat" aria-label="Kapat">×</button></div>
             <div class="kesit-gorsel"><img id="kcImg" alt="Sonar kesiti"><canvas id="kcCanvas"></canvas></div>
           </div>
+          <div class="kesit-cekmece" id="profilCekmece" hidden>
+            <div class="kc-ust"><b>Derinlik profili</b><span id="pfBilgi"></span>
+              <button class="btn hayalet kucuk" id="pfCsv">CSV indir</button>
+              <button class="kapat" id="pfKapat" aria-label="Kapat">×</button></div>
+            <div class="profil-kap"><canvas id="pfGrafik"></canvas></div>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- 3B TOPOGRAFYA -->
+      <div class="sekme" id="sekme-3d" hidden>
+        <div class="uc-kap">
+          <div class="uc-sahne" id="ucSahne">
+            <canvas id="ucCanvas"></canvas>
+            <div class="uc-ipucu">Sürükle: döndür · Sağ tuş ya da Shift+sürükle: kaydır · Tekerlek: yakınlaştır · Çift tık: sıfırla</div>
+            <div class="uc-pusula" id="ucPusula" title="Kuzey"><svg viewBox="0 0 40 40"><path d="M20 3 27 23 20 18.5 13 23Z" fill="#f43f5e"/><path d="M20 37 13 17 20 21.5 27 17Z" fill="rgba(255,255,255,.4)"/></svg><b>K</b></div>
+            <div class="uc-okuma" id="ucOkuma" hidden></div>
+            <div class="uc-efsane" id="ucEfsane"></div>
+            <div class="uc-durum" id="ucDurum" hidden></div>
+          </div>
+          <aside class="uc-panel">
+            <div class="uc-grup">
+              <div class="uc-baslik">Alan <button class="yardim-i" id="ucYardim" title="Bu ne demek?">?</button></div>
+              <div class="uc-alan"><b id="ucAlanBilgi">Tüm ölçülen alan</b><button class="btn hayalet kucuk" id="ucAlanTemizle" hidden>Tüm alan</button></div>
+              <div class="seg kucuk" id="ucKip"><button data-k="dikdortgen" class="aktif">Dikdörtgen</button><button data-k="cokgen">Çokgen</button></div>
+              <button class="btn" id="ucAlanSec"><svg viewBox="0 0 24 24"><path d="M4 7l7-3 9 5-3 10-11 1z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Haritadan alan seç</span></button>
+              <label class="uc-onay"><input type="checkbox" id="ucTahmin" checked> Tahmini (uydu) alanı dahil et</label>
+              <label class="uc-satir">Çözünürlük
+                <select id="ucAdim"><option value="0" selected>Otomatik</option><option value="0.5">0,5 m</option><option value="1">1 m</option><option value="2">2 m</option><option value="5">5 m</option></select></label>
+            </div>
+            <div class="uc-grup">
+              <div class="uc-baslik">Görünüm</div>
+              <label class="uc-satir">Dikey büyütme <b id="ucEYazi">×5</b><input type="range" id="ucE" min="1" max="30" step="1" value="5"></label>
+              <label class="uc-satir">Renk
+                <select id="ucMod"><option value="derinlik" selected>Derinlik</option><option value="egim">Dip eğimi</option><option value="zemin">Zemin sınıfı</option><option value="kaynak">Ölçüm / tahmin</option></select></label>
+              <label class="uc-onay"><input type="checkbox" id="ucKontur" checked> Eş derinlik çizgileri</label>
+              <label class="uc-onay"><input type="checkbox" id="ucSu" checked> Su yüzeyi</label>
+              <div class="seg kucuk" id="ucGorunum"><button data-g="egik" class="aktif">Eğik</button><button data-g="ust">Üstten</button><button data-g="yan">Yandan</button></div>
+            </div>
+            <div class="uc-grup">
+              <div class="uc-baslik">Seçilen alan</div>
+              <div class="uc-bilgi" id="ucBilgi"></div>
+            </div>
+            <div class="uc-grup">
+              <div class="uc-baslik">Dışa aktar</div>
+              <div class="uc-disari"><button class="btn hayalet kucuk" id="ucPng">PNG</button><button class="btn hayalet kucuk" id="ucObj">OBJ</button><button class="btn hayalet kucuk" id="ucStl">STL</button></div>
+              <small class="ince">OBJ / STL kapalı katı model olarak (taban plakalı) verilir; 3B yazıcı ve CAD için.</small>
+            </div>
+          </aside>
         </div>
       </div>
 
@@ -130,6 +247,20 @@
               <select id="genislik"><option value="300">Dar (~12 sn)</option><option value="600" selected>Orta (~25 sn)</option><option value="1200">Geniş (~50 sn)</option><option value="2400">Çok geniş (~1,5 dk)</option></select></label>
             <label class="sec">Palet
               <select id="palet"><option value="bakir">Bakır</option><option value="okyanus">Okyanus</option><option value="sicak">Sıcak</option><option value="gri">Gri</option></select></label>
+            <button class="btn hayalet kucuk" id="duzenleBtn" title="Dip çizgisini elle düzelt">
+              <svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16zM14 6l4 4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg><span>Düzelt</span></button>
+          </div>
+          <div class="duzenle-cubugu" id="duzenleCubugu" hidden>
+            <div class="seg kucuk" id="duzenleKip">
+              <button data-k="ciz" class="aktif" title="Basılı tutup sürükleyerek doğru dip çizgisini çiz">Dip çiz</button>
+              <button data-k="sil" title="Sürükleyerek hatalı ping aralığını işaretle">Aralık sil</button>
+            </div>
+            <span class="ince" id="duzenleBilgi">Basılı tutup sürükle. Kaydedince analizleri yeniden hesapla.</span>
+            <div class="bosluk"></div>
+            <button class="btn hayalet kucuk" id="geriAlBtn">Geri al</button>
+            <button class="btn hayalet kucuk" id="duzTemizleBtn">Tümünü kaldır</button>
+            <button class="btn kucuk" id="duzKaydetBtn">Kaydet</button>
+            <button class="btn hayalet kucuk" id="duzKapatBtn">Kapat</button>
           </div>
           <div class="kesit-gorsel buyuk"><img id="sonarImg" alt="Sonar kesiti"><canvas id="sonarCanvas"></canvas><div class="yukleniyor" id="sonarYuk"></div></div>
           <input type="range" id="zamanCubuk" class="zaman-cubuk" min="0" max="100" value="0" aria-label="Kayıt içinde konum">
@@ -145,14 +276,23 @@
       <div class="sekme" id="sekme-grafik" hidden>
         <div class="grafik-izgara">
           <div class="kart"><div class="kart-baslik">Derinlik <span class="ince">noktaya tıkla: sonar kesitine git</span></div><div class="grafik-kap"><canvas id="gDerinlik"></canvas></div></div>
-          <div class="kart"><div class="kart-baslik">Tekne hızı</div><div class="grafik-kap kisa"><canvas id="gHiz"></canvas></div></div>
-          <div class="kart"><div class="kart-baslik">Su sıcaklığı</div><div class="grafik-kap kisa"><canvas id="gSicaklik"></canvas></div></div>
+          <div class="iki-sutun">
+            <div class="kart"><div class="kart-baslik">Tekne hızı</div><div class="grafik-kap kisa"><canvas id="gHiz"></canvas></div></div>
+            <div class="kart"><div class="kart-baslik">Su sıcaklığı</div><div class="grafik-kap kisa"><canvas id="gSicaklik"></canvas></div></div>
+          </div>
+          <div class="kart" id="hacimKart" hidden>
+            <div class="kart-baslik">Kot – alan – hacim <span class="ince" id="hacimKapsam"></span><button class="yardim-i" data-yardim="hacim_tablosu">?</button></div>
+            <div class="hacim-izgara">
+              <div class="grafik-kap"><canvas id="gHacim"></canvas></div>
+              <div class="hacim-tablo" id="hacimTablo"></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- ANALIZ -->
       <div class="sekme" id="sekme-analiz" hidden>
-        <p class="aciklama">Temel analiz her yüklemede otomatik çalışır. Diğerleri isteğe bağlı: ihtiyacın olanı çalıştır, sonuçlar haritaya ve dosyalara eklenir.</p>
+        <p class="aciklama">Temel analiz her yüklemede otomatik çalışır. Diğerleri isteğe bağlı: ihtiyacın olanı çalıştır, sonuçlar haritaya, rapora ve dosyalara eklenir.</p>
         <div id="analizKartlar" class="analiz-izgara"></div>
       </div>
 
@@ -164,12 +304,24 @@
   </main>
 </div>
 
+<!-- ======================= PENCERELER ======================= -->
+<div id="perde" class="perde" hidden>
+  <div class="pencere" role="dialog" aria-modal="true" aria-labelledby="pencereBaslik">
+    <header><h2 id="pencereBaslik"></h2><button class="kapat" id="pencereKapat" aria-label="Kapat">×</button></header>
+    <div class="pencere-govde" id="pencereGovde"></div>
+    <footer id="pencereAlt"></footer>
+  </div>
+</div>
+
 <div id="buyutec" class="buyutec" hidden><button class="kapat" aria-label="Kapat">×</button><img alt=""><div class="buyutec-alt"><span></span><a class="btn kucuk" download>İndir</a></div></div>
 <div id="bildirim" class="bildirim" hidden></div>
 <div id="birak" class="birak" hidden><div><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0-4-4m4 4 4-4M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><b>Bırak, analiz başlasın</b></div></div>
 
 <script src="/static/vendor/leaflet.js"></script>
 <script src="/static/vendor/chart.umd.min.js"></script>
+<script src="/static/vendor/three.min.js"></script>
+<script src="/static/dil.js"></script>
 <script src="/static/app.js"></script>
+<script src="/static/uc3d.js"></script>
 </body>
 </html>

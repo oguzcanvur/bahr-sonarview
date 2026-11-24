@@ -36,9 +36,15 @@ def kontur_seviyeleri(degerler, hedef=6):
     if v.size == 0:
         return np.array([1.0])
     lo, hi = np.percentile(v, 1), np.percentile(v, 99)
-    for adim in (0.25, 0.5, 1.0, 2.0, 5.0, 10.0):
-        if (hi - lo) / adim <= hedef:
-            break
+    try:
+        from ortak import parametreler
+        adim = float(parametreler().get("kontur_araligi") or 0)
+    except Exception:
+        adim = 0
+    if adim <= 0 or (hi - lo) / adim > 200:            # 0 = otomatik
+        for adim in (0.25, 0.5, 1.0, 2.0, 5.0, 10.0):
+            if (hi - lo) / adim <= hedef:
+                break
     sev = np.arange(math.ceil(lo / adim) * adim, hi + 1e-9, adim)
     return sev if sev.size else np.array([round((lo + hi) / 2, 1)])
 
